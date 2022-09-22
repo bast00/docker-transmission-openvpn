@@ -1,39 +1,38 @@
-version: '2'
+version: '3.3'
 services:
- transmission:
-  image: haugene/transmission-openvpn
-  cap_add:
-    - NET_ADMIN
-  devices:
-    - /dev/net/tun
-  restart: always
-  ports:
-    - "9091:9091"
-    - "8888:8888"
-  dns:
-    - 8.8.8.8
-    - 8.8.4.4
-  volumes:
-    - /etc/localtime:/etc/localtime:ro
-    - /your/storage/path/:/data
-  environment:
-    - OPENVPN_PROVIDER=PIA
-    - OPENVPN_USERNAME=username
-    - OPENVPN_PASSWORD=password
-    - OPENVPN_OPTS=--inactive 3600 --ping 10 --ping-exit 60
-    - LOCAL_NETWORK=192.168.0.0/24
- proxy:
-  image: haugene/transmission-openvpn-proxy
-  links:
-    - transmission
-  ports:
-    - 8080:8080
-  volumes:
-    - /etc/localtime:/etc/localtime:ro
+    transmission:
+        build: 
+          context: .
+        cap_add:
+            - NET_ADMIN
+        volumes:
+            # Path/to/download/folder:/data
+            - '/srv/mydisk/films/torrents:/data'
 
- rss:
-  image: haugene/transmission-rss
-  links:
-    - transmission
-  environment:
-    - RSS_URL=http://.../xxxxx.rss
+            # Path/to/openvpn/conf/folder/:/etc/openvpn/custom/
+            # This folder must contain:
+            #   - [OPENVPN_CONFIG].ovpn             -- the ovpn config file, depending on env var below
+            #   - ca.crt client.crt client.key      -- ovpn files used in the ovpn file
+            # personnally I hardcoded paths (ie. /etc/openvpn/custom/ca.crt instead of ca.crt) in the ovpn file to avoid errors.
+            - '/srv/mydisk/compose/transmission/openvpn/Swiss/:/etc/openvpn/custom/'
+
+            - /etc/localtime:/etc/localtime:ro
+        environment:
+            - OPENVPN_PROVIDER=custom
+            - OPENVPN_CONFIG=XXXXX            # name of the openvpn file, without ".ovpn"
+            - OPENVPN_USERNAME=XXXXXXXXXXXXX  # username to connect
+            - OPENVPN_PASSWORD=XXXXXXXXXXXXX  # password to connect
+            - LOCAL_NETWORK=192.168.0.0/16    # local network to not send through the tunnel
+            - OPENVPN_OPTS=--inactive 3600 --ping 10 --ping-exit 60
+            - HEALTH_CHECK_HOST=google.com
+        dns:
+          - 1.1.1.1
+          - 1.0.0.1
+        logging:
+            driver: json-file
+            options:
+                max-size: 10m
+        ports:
+            - '9091:9091'
+            - "8888:8888"
+        restart: always
