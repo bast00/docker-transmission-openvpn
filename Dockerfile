@@ -16,16 +16,37 @@ RUN apk --no-cache add curl jq \
     && mkdir /opt/transmission-ui/transmission-web-control \
     && curl -sL $(curl -s https://api.github.com/repos/ronggang/transmission-web-control/releases/latest | jq --raw-output '.tarball_url') | tar -C /opt/transmission-ui/transmission-web-control/ --strip-components=2 -xz
 
-FROM ubuntu:20.04
+
+FROM ubuntu:22.04 as libtransmission
+
+RUN apt-get update && apt-get -y install build-essential cmake git \
+ libcurl4-openssl-dev libssl-dev libb64-dev libdeflate-dev \
+ libevent-dev libminiupnpc-dev libnatpmp-dev libpsl-dev libsystemd-dev
+WORKDIR /opt/
+RUN git clone https://github.com/bast00/transmission
+WORKDIR /opt/transmission/
+RUN git submodule update --init
+RUN rm -rf /opt/transmission/build
+RUN mkdir /opt/transmission/build
+WORKDIR /opt/transmission/build
+RUN cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .. && make && make install
+RUN ln -s /usr/local/bin/transmission-daemon /usr/bin/transmission-daemon 
+
+
+FROM ubuntu:22.04
 
 VOLUME /data
 VOLUME /config
 
 COPY --from=TransmissionUIs /opt/transmission-ui /opt/transmission-ui
+COPY --from=libtransmission /usr/bin/transmission-daemon  /usr/bin/transmission-daemon
+
 
 ARG DEBIAN_FRONTEND=noninteractive
+
+
 RUN apt-get update && apt-get install -y \
-    dumb-init openvpn transmission-daemon transmission-cli privoxy \
+    dumb-init openvpn privoxy \
     tzdata dnsutils iputils-ping ufw openssh-client git jq curl wget unrar unzip bc \
     && ln -s /usr/share/transmission/web/style /opt/transmission-ui/transmission-web-control \
     && ln -s /usr/share/transmission/web/images /opt/transmission-ui/transmission-web-control \
@@ -35,7 +56,6 @@ RUN apt-get update && apt-get install -y \
     && groupmod -g 1000 users \
     && useradd -u 911 -U -d /config -s /bin/false abc \
     && usermod -G users abc
-
 
 # Add configuration and scripts
 ADD openvpn/ /etc/openvpn/

@@ -1,3 +1,13 @@
+# Tuto install
+
+ - Install docker and docker-compose [Install Compose](https://docs.docker.com/compose/install/linux/)
+ - in the project dir : `docker compose up -d`
+ - wait for the thing (must take 1h to pull, compile, etc.)
+
+This fixed-project rely on my other fixed-project [Fixed Transmission](https://github.com/bast00/transmission), and the transmission container will have all the compilation stuff for transmission.
+The dockerfile will pull my transmission project, install the compilation environment, compile the thing and BAM it'll work, but also take arround 2GB. I'm too lazy to optimize the stuff.
+
+
 # OpenVPN and Transmission with WebUI
 
 [![CircleCI builds](https://img.shields.io/circleci/build/github/haugene/docker-transmission-openvpn)](https://circleci.com/gh/haugene/docker-transmission-openvpn)
