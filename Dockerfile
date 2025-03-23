@@ -39,14 +39,10 @@ VOLUME /data
 VOLUME /config
 
 COPY --from=TransmissionUIs /opt/transmission-ui /opt/transmission-ui
-COPY --from=libtransmission /usr/bin/transmission-daemon  /usr/bin/transmission-daemon
-
-
 ARG DEBIAN_FRONTEND=noninteractive
 
-
 RUN apt-get update && apt-get install -y \
-    dumb-init openvpn privoxy \
+    dumb-init openvpn privoxy transmission-daemon libdeflate0 libb64-0d\
     tzdata dnsutils iputils-ping ufw openssh-client git jq curl wget unrar unzip bc \
     && ln -s /usr/share/transmission/web/style /opt/transmission-ui/transmission-web-control \
     && ln -s /usr/share/transmission/web/images /opt/transmission-ui/transmission-web-control \
@@ -56,6 +52,10 @@ RUN apt-get update && apt-get install -y \
     && groupmod -g 1000 users \
     && useradd -u 911 -U -d /config -s /bin/false abc \
     && usermod -G users abc
+
+ENV TRANSMISSION_WEB_HOME=/opt/transmission-ui/transmission-web-control
+
+COPY --from=libtransmission /usr/bin/transmission-daemon  /usr/bin/transmission-daemon
 
 # Add configuration and scripts
 ADD openvpn/ /etc/openvpn/
